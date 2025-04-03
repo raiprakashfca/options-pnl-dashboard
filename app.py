@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import json
@@ -21,7 +20,6 @@ client = gspread.authorize(creds)
 SHEET_ID = "1Siith5tw8m-aNOAcwqG1I7L1e_kt8qBX1OOKuAkCpb4"
 sheet = client.open_by_key(SHEET_ID).sheet1
 
-@st.cache_data
 def load_trades():
     records = sheet.get_all_records()
     return pd.DataFrame(records)
@@ -88,10 +86,13 @@ if tab == "📤 Upload Trades":
 
 elif tab == "📋 Script-Wise Summary":
     st.header("📋 Script-Wise Summary")
+
+    # Clear cache and reload to ensure fresh data
+    st.cache_data.clear()
     df = load_trades()
+
     st.subheader("🔍 Raw Data from Google Sheets")
     st.dataframe(df, use_container_width=True)
-
     st.write("📌 Detected column names:", df.columns.tolist())
 
     required_cols = {"Symbol", "Expiry", "Strike", "Type", "Side", "Quantity", "Price", "Date", "Value"}
