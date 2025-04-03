@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import json
@@ -87,7 +86,6 @@ if tab == "📤 Upload Trades":
 
 elif tab == "📋 Script-Wise Summary":
     st.header("📋 Script-Wise Summary")
-
     st.cache_data.clear()
     df = load_trades()
 
@@ -97,51 +95,24 @@ elif tab == "📋 Script-Wise Summary":
         df['OT'] = df['Type'].map({'CE': 'C', 'PE': 'P'})
         df['Leg'] = df['Symbol'].astype(str) + '_' + df['Expiry'].astype(str) + '_' + df['Strike'].astype(str) + '_' + df['OT']
 
-        df['Date'] = pd.to_datetime(df['Date'])
-        df.sort_values(by='Date', inplace=True)
+        grouped = df.groupby(['Date', 'Symbol', 'Expiry', 'Strike', 'OT'], as_index=False).agg(
+            Buy_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
+            Buy_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
+            Sell_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
+            Sell_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum())
+        )
 
-        records = []
-        net_positions = {}
+        grouped['Net_Qty'] = grouped['Sell_Qty'] - grouped['Buy_Qty']
+        grouped['P&L'] = grouped['Sell_Amt'] - grouped['Buy_Amt']
+        grouped['Status'] = grouped['Net_Qty'].apply(lambda x: 'Closed' if x == 0 else 'Open Position')
 
-        for _, row in df.iterrows():
-            key = (row['Symbol'], row['Expiry'], row['Strike'], row['OT'])
+        grouped = grouped.rename(columns={'OT': 'Type', 'Date': 'Trade Date'})
+        grouped = grouped.sort_values(by=['Trade Date', 'Symbol', 'Strike'])
 
-            qty = row['Quantity'] if row['Side'] == 'S' else -row['Quantity']
-            amt = row['Value'] if row['Side'] == 'S' else -row['Value']
+        st.dataframe(grouped, use_container_width=True)
 
-            prev_qty, prev_amt = net_positions.get(key, (0, 0))
-            new_qty = prev_qty + qty
-            new_amt = prev_amt + amt
+        totals = grouped[grouped['Status'] == 'Closed']['P&L'].sum()
+        st.markdown(f"### 💰 Total Realised P&L: `{totals:.2f}`")
 
-            net_positions[key] = (new_qty, new_amt)
-
-            status = "Closed" if new_qty == 0 else "Open Position"
-
-            records.append({
-                "Trade Date": row["Date"].date(),
-                "Symbol": row["Symbol"],
-                "Expiry": row["Expiry"],
-                "Strike": row["Strike"],
-                "Type": row["OT"],
-                "Buy_Qty": row["Quantity"] if row["Side"] == "B" else 0,
-                "Buy_Amt": row["Value"] if row["Side"] == "B" else 0,
-                "Sell_Qty": row["Quantity"] if row["Side"] == "S" else 0,
-                "Sell_Amt": row["Value"] if row["Side"] == "S" else 0,
-                "Net_Qty": new_qty,
-                "P&L": new_amt if new_qty == 0 else None,
-                "Status": status
-            })
-
-        summary = pd.DataFrame(records)
-        summary = summary.groupby(["Trade Date", "Symbol", "Expiry", "Strike", "Type", "Status"], as_index=False).agg({
-            "Buy_Qty": "sum",
-            "Buy_Amt": "sum",
-            "Sell_Qty": "sum",
-            "Sell_Amt": "sum",
-            "Net_Qty": "last",
-            "P&L": "last"
-        }).sort_values(by=["Trade Date", "Symbol", "Strike"])
-
-        st.dataframe(summary, use_container_width=True)
-        excel_file = export_to_excel(summary)
+        excel_file = export_to_excel(grouped)
         st.download_button("📥 Download Excel Summary", excel_file, "PnL_Summary.xlsx")
