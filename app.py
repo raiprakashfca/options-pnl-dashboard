@@ -45,6 +45,8 @@ def export_to_excel(df):
 
     current_row = 2
     grouped = df.groupby('Trade Date')
+    pnl_col_idx = df.columns.get_loc("P&L") + 1
+
     for date, group in grouped:
         for _, row in group.iterrows():
             ws.append(row.tolist())
@@ -62,20 +64,18 @@ def export_to_excel(df):
                     cell.fill = PatternFill(start_color="FFF2CC", fill_type="solid")
             current_row += 1
 
-        # Add subtotal for the date
-        ws.append([f"Subtotal for {date}"] + [""] * (len(col_headers) - 2) + [f"=SUM(J{current_row - len(group)}:J{current_row - 1})"])
+        col_letter = get_column_letter(pnl_col_idx)
+        ws.append([f"Subtotal for {date}"] + [""] * (len(col_headers) - 2) + [f"=SUM({col_letter}{current_row - len(group)}:{col_letter}{current_row - 1})"])
         current_row += 1
 
-    # Add grand total
-    ws.append(["Grand Total"] + [""] * (len(col_headers) - 2) + [f"=SUM(J2:J{current_row - 1})"])
+    col_letter = get_column_letter(pnl_col_idx)
+    ws.append(["Grand Total"] + [""] * (len(col_headers) - 2) + [f"=SUM({col_letter}2:{col_letter}{current_row - 1})"])
 
-    # Format header row
     for cell in ws[1]:
         cell.font = Font(bold=True)
         cell.fill = PatternFill(start_color="D9E1F2", fill_type="solid")
         cell.alignment = Alignment(horizontal="center")
 
-    # Adjust column widths
     for col in ws.columns:
         max_len = max(len(str(cell.value) if cell.value else "") for cell in col)
         ws.column_dimensions[col[0].column_letter].width = max_len + 2
@@ -117,6 +117,8 @@ elif tab == "📋 Script-Wise Summary":
     else:
         df['OT'] = df['Type'].map({'CE': 'C', 'PE': 'P'})
         df['Leg'] = df['Symbol'].astype(str) + '_' + df['Expiry'].astype(str) + '_' + df['Strike'].astype(str) + '_' + df['OT']
+
+        df = df.rename(columns={'Date': 'Trade Date'})
 
         grouped = df.groupby(['Trade Date', 'Symbol', 'Expiry', 'Strike', 'OT'], as_index=False).agg(
             Buy_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
