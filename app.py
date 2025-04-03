@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 import json
 import gspread
+import re
 from datetime import datetime
 from io import BytesIO
 from oauth2client.service_account import ServiceAccountCredentials
@@ -71,9 +72,14 @@ if tab == "📤 Upload Trades":
         try:
             df = pd.read_excel(uploaded_file)
             df.columns = df.columns.str.strip()
-            trade_date = uploaded_file.name.replace("TRADES", "").replace(".xlsx", "")
-            trade_date = datetime.strptime(trade_date, "%d%m%Y").date()
+
+            # Use regex to extract 8-digit date
+            match = re.search(r"(\d{8})", uploaded_file.name)
+            if not match:
+                raise ValueError("Filename must contain a valid date in DDMMYYYY format (e.g., TRADES01042025.xlsx)")
+            trade_date = datetime.strptime(match.group(1), "%d%m%Y").date()
             df['Trade Date'] = trade_date
+
             df = df[['Symbol/ScripId', 'Ser/Exp/Group', 'Strike Price', 'Option Type', 'B/S', 'Quantity', 'Price', 'Trade Date']]
             df.columns = ['Symbol', 'Expiry', 'Strike', 'Type', 'Side', 'Quantity', 'Price', 'Date']
             df = df[(df['Quantity'] > 0) & (df['Price'] > 0)]
