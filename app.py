@@ -9,6 +9,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 from openpyxl import Workbook
 from openpyxl.styles import PatternFill, Font, Alignment
 from openpyxl.utils.dataframe import dataframe_to_rows
+from openpyxl.utils import get_column_letter
 
 st.set_page_config(page_title="Options Trading P&L Dashboard", layout="wide")
 
@@ -38,25 +39,47 @@ def export_to_excel(df):
     wb = Workbook()
     ws = wb.active
     ws.title = "P&L Summary"
-    for r_idx, row in enumerate(dataframe_to_rows(df, index=False, header=True), 1):
-        ws.append(row)
-        for c_idx, cell in enumerate(ws[r_idx], 1):
-            col_name = ws[1][c_idx - 1].value
-            cell.alignment = Alignment(horizontal="right" if col_name in ['Buy_Amt', 'Sell_Amt', 'P&L'] else "center")
-            if r_idx == 1:
-                cell.font = Font(bold=True)
-                cell.fill = PatternFill(start_color="D9E1F2", fill_type="solid")
-            elif row[df.columns.get_loc("Status")] == "Open Position":
-                cell.fill = PatternFill(start_color="FFF2CC", fill_type="solid")
-            elif col_name == "P&L":
-                if isinstance(cell.value, (int, float)):
-                    if cell.value > 0:
-                        cell.fill = PatternFill(start_color="C6EFCE", fill_type="solid")
-                    elif cell.value < 0:
-                        cell.fill = PatternFill(start_color="FFC7CE", fill_type="solid")
+
+    col_headers = df.columns.tolist()
+    ws.append(col_headers)
+
+    current_row = 2
+    grouped = df.groupby('Trade Date')
+    for date, group in grouped:
+        for _, row in group.iterrows():
+            ws.append(row.tolist())
+            for col_idx, value in enumerate(row.tolist(), 1):
+                col_name = col_headers[col_idx - 1]
+                cell = ws.cell(row=current_row, column=col_idx)
+                cell.alignment = Alignment(horizontal="right" if col_name in ['Buy_Amt', 'Sell_Amt', 'P&L'] else "center")
+                if col_name == "P&L":
+                    if pd.notna(value):
+                        if value > 0:
+                            cell.fill = PatternFill(start_color="C6EFCE", fill_type="solid")
+                        elif value < 0:
+                            cell.fill = PatternFill(start_color="FFC7CE", fill_type="solid")
+                if row['Status'] == 'Open Position':
+                    cell.fill = PatternFill(start_color="FFF2CC", fill_type="solid")
+            current_row += 1
+
+        # Add subtotal for the date
+        ws.append([f"Subtotal for {date}"] + [""] * (len(col_headers) - 2) + [f"=SUM(J{current_row - len(group)}:J{current_row - 1})"])
+        current_row += 1
+
+    # Add grand total
+    ws.append(["Grand Total"] + [""] * (len(col_headers) - 2) + [f"=SUM(J2:J{current_row - 1})"])
+
+    # Format header row
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+        cell.fill = PatternFill(start_color="D9E1F2", fill_type="solid")
+        cell.alignment = Alignment(horizontal="center")
+
+    # Adjust column widths
     for col in ws.columns:
         max_len = max(len(str(cell.value) if cell.value else "") for cell in col)
         ws.column_dimensions[col[0].column_letter].width = max_len + 2
+
     wb.save(output)
     output.seek(0)
     return output
@@ -95,7 +118,7 @@ elif tab == "📋 Script-Wise Summary":
         df['OT'] = df['Type'].map({'CE': 'C', 'PE': 'P'})
         df['Leg'] = df['Symbol'].astype(str) + '_' + df['Expiry'].astype(str) + '_' + df['Strike'].astype(str) + '_' + df['OT']
 
-        grouped = df.groupby(['Symbol', 'Expiry', 'Strike', 'OT'], as_index=False).agg(
+        grouped = df.groupby(['Trade Date', 'Symbol', 'Expiry', 'Strike', 'OT'], as_index=False).agg(
             Buy_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
             Buy_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
             Sell_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
@@ -107,7 +130,7 @@ elif tab == "📋 Script-Wise Summary":
         grouped['Status'] = grouped['Net_Qty'].apply(lambda x: 'Closed' if x == 0 else 'Open Position')
 
         grouped = grouped.rename(columns={'OT': 'Type'})
-        grouped = grouped.sort_values(by=['Symbol', 'Strike'])
+        grouped = grouped.sort_values(by=['Trade Date', 'Symbol', 'Strike'])
 
         st.dataframe(grouped, use_container_width=True)
 
