@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import json
@@ -12,30 +11,27 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 
 st.set_page_config(page_title="Options Trading P&L Dashboard", layout="wide")
 
-# Authenticate with Google Sheets
+# Authenticate with Google Sheets using service account
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 creds_dict = json.loads(st.secrets["GOOGLE_CREDENTIALS_JSON"])
 creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
 client = gspread.authorize(creds)
 
-# Open the spreadsheet
-SHEET_NAME = "Options_Trade_Data"
-sheet = client.open(SHEET_NAME).sheet1
+# Use sheet by ID instead of name
+SHEET_ID = "1Siith5tw8m-aNOAcwqG1I7L1e_kt8qBX1OOKuAkCpb4"
+sheet = client.open_by_key(SHEET_ID).sheet1
 
-# Load existing trade data
 @st.cache_data
 def load_trades():
     records = sheet.get_all_records()
     return pd.DataFrame(records)
 
-# Save new trades
 def append_trades(new_df):
     existing = load_trades()
     updated = pd.concat([existing, new_df], ignore_index=True)
     sheet.clear()
     sheet.update([updated.columns.values.tolist()] + updated.values.tolist())
 
-# Excel export styling
 def export_to_excel(df):
     output = BytesIO()
     wb = Workbook()
@@ -78,7 +74,6 @@ if tab == "📤 Upload Trades":
             df = pd.read_excel(uploaded_file)
             df.columns = df.columns.str.strip()
 
-            # Parse date from filename
             trade_date = uploaded_file.name.replace("TRADES", "").replace(".xlsx", "")
             trade_date = datetime.strptime(trade_date, "%d%m%Y").date()
             df['Trade Date'] = trade_date
