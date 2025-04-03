@@ -117,27 +117,27 @@ elif tab == "📋 Script-Wise Summary":
     else:
         df['OT'] = df['Type'].map({'CE': 'C', 'PE': 'P'})
         df['Leg'] = df['Symbol'].astype(str) + '_' + df['Expiry'].astype(str) + '_' + df['Strike'].astype(str) + '_' + df['OT']
-
         df = df.rename(columns={'Date': 'Trade Date'})
 
-        grouped = df.groupby(['Trade Date', 'Symbol', 'Expiry', 'Strike', 'OT'], as_index=False).agg(
+        # Group by contract, not by date
+        summary = df.groupby(['Symbol', 'Expiry', 'Strike', 'OT'], as_index=False).agg(
             Buy_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
             Buy_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
             Sell_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
-            Sell_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum())
+            Sell_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
+            First_Trade_Date=('Trade Date', 'min')
         )
 
-        grouped['Net_Qty'] = grouped['Sell_Qty'] - grouped['Buy_Qty']
-        grouped['P&L'] = grouped['Sell_Amt'] - grouped['Buy_Amt']
-        grouped['Status'] = grouped['Net_Qty'].apply(lambda x: 'Closed' if x == 0 else 'Open Position')
+        summary['Net_Qty'] = summary['Sell_Qty'] - summary['Buy_Qty']
+        summary['P&L'] = summary['Sell_Amt'] - summary['Buy_Amt']
+        summary['Status'] = summary['Net_Qty'].apply(lambda x: 'Closed' if x == 0 else 'Open Position')
+        summary = summary.rename(columns={'OT': 'Type', 'First_Trade_Date': 'Trade Date'})
+        summary = summary.sort_values(by=['Trade Date', 'Symbol', 'Strike'])
 
-        grouped = grouped.rename(columns={'OT': 'Type'})
-        grouped = grouped.sort_values(by=['Trade Date', 'Symbol', 'Strike'])
+        st.dataframe(summary, use_container_width=True)
 
-        st.dataframe(grouped, use_container_width=True)
-
-        totals = grouped[grouped['Status'] == 'Closed']['P&L'].sum()
+        totals = summary[summary['Status'] == 'Closed']['P&L'].sum()
         st.markdown(f"### 💰 Total Realised P&L: `{totals:.2f}`")
 
-        excel_file = export_to_excel(grouped)
+        excel_file = export_to_excel(summary)
         st.download_button("📥 Download Excel Summary", excel_file, "PnL_Summary.xlsx")
