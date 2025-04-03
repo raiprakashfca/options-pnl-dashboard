@@ -49,7 +49,7 @@ def export_to_excel(df):
 
     for date, group in grouped:
         for _, row in group.iterrows():
-            ws.append(row.tolist())
+            ws.append([val if not (col_headers[i] == "P&L" and row['Status'] == 'Open Position') else None for i, val in enumerate(row.tolist())])
             for col_idx, value in enumerate(row.tolist(), 1):
                 col_name = col_headers[col_idx - 1]
                 cell = ws.cell(row=current_row, column=col_idx)
