@@ -95,7 +95,7 @@ elif tab == "📋 Script-Wise Summary":
         df['OT'] = df['Type'].map({'CE': 'C', 'PE': 'P'})
         df['Leg'] = df['Symbol'].astype(str) + '_' + df['Expiry'].astype(str) + '_' + df['Strike'].astype(str) + '_' + df['OT']
 
-        grouped = df.groupby(['Date', 'Symbol', 'Expiry', 'Strike', 'OT'], as_index=False).agg(
+        grouped = df.groupby(['Symbol', 'Expiry', 'Strike', 'OT'], as_index=False).agg(
             Buy_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
             Buy_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
             Sell_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
@@ -106,8 +106,8 @@ elif tab == "📋 Script-Wise Summary":
         grouped['P&L'] = grouped['Sell_Amt'] - grouped['Buy_Amt']
         grouped['Status'] = grouped['Net_Qty'].apply(lambda x: 'Closed' if x == 0 else 'Open Position')
 
-        grouped = grouped.rename(columns={'OT': 'Type', 'Date': 'Trade Date'})
-        grouped = grouped.sort_values(by=['Trade Date', 'Symbol', 'Strike'])
+        grouped = grouped.rename(columns={'OT': 'Type'})
+        grouped = grouped.sort_values(by=['Symbol', 'Strike'])
 
         st.dataframe(grouped, use_container_width=True)
 
