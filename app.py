@@ -72,14 +72,11 @@ if tab == "📤 Upload Trades":
         try:
             df = pd.read_excel(uploaded_file)
             df.columns = df.columns.str.strip()
-
-            # Use regex to extract 8-digit date
             match = re.search(r"(\d{8})", uploaded_file.name)
             if not match:
                 raise ValueError("Filename must contain a valid date in DDMMYYYY format (e.g., TRADES01042025.xlsx)")
             trade_date = datetime.strptime(match.group(1), "%d%m%Y").date()
             df['Trade Date'] = trade_date
-
             df = df[['Symbol/ScripId', 'Ser/Exp/Group', 'Strike Price', 'Option Type', 'B/S', 'Quantity', 'Price', 'Trade Date']]
             df.columns = ['Symbol', 'Expiry', 'Strike', 'Type', 'Side', 'Quantity', 'Price', 'Date']
             df = df[(df['Quantity'] > 0) & (df['Price'] > 0)]
@@ -94,6 +91,8 @@ elif tab == "📋 Script-Wise Summary":
     df = load_trades()
     st.subheader("🔍 Raw Data from Google Sheets")
     st.dataframe(df, use_container_width=True)
+
+    st.write("📌 Detected column names:", df.columns.tolist())
 
     required_cols = {"Symbol", "Expiry", "Strike", "Type", "Side", "Quantity", "Price", "Date", "Value"}
     if df.empty or not required_cols.issubset(set(df.columns)):
