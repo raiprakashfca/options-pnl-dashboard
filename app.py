@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import json
@@ -25,7 +26,11 @@ def load_trades():
     return pd.DataFrame(records)
 
 def append_trades(new_df):
-    new_df["Date"] = new_df["Date"].astype(str)  # Convert Timestamp to string
+    # Convert any datetime columns to string for JSON compatibility
+    for col in ["Date", "Expiry"]:
+        if col in new_df.columns:
+            new_df[col] = new_df[col].astype(str)
+
     existing = load_trades()
     updated = pd.concat([existing, new_df], ignore_index=True)
     sheet.clear()
