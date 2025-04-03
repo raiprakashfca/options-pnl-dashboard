@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import json
@@ -54,12 +55,11 @@ def export_to_excel(df):
                 col_name = col_headers[col_idx - 1]
                 cell = ws.cell(row=current_row, column=col_idx)
                 cell.alignment = Alignment(horizontal="right" if col_name in ['Buy_Amt', 'Sell_Amt', 'P&L'] else "center")
-                if col_name == "P&L":
-                    if pd.notna(value):
-                        if value > 0:
-                            cell.fill = PatternFill(start_color="C6EFCE", fill_type="solid")
-                        elif value < 0:
-                            cell.fill = PatternFill(start_color="FFC7CE", fill_type="solid")
+                if col_name == "P&L" and pd.notna(value):
+                    if value > 0:
+                        cell.fill = PatternFill(start_color="C6EFCE", fill_type="solid")
+                    elif value < 0:
+                        cell.fill = PatternFill(start_color="FFC7CE", fill_type="solid")
                 if row['Status'] == 'Open Position':
                     cell.fill = PatternFill(start_color="FFF2CC", fill_type="solid")
             current_row += 1
@@ -119,25 +119,30 @@ elif tab == "📋 Script-Wise Summary":
         df['Leg'] = df['Symbol'].astype(str) + '_' + df['Expiry'].astype(str) + '_' + df['Strike'].astype(str) + '_' + df['OT']
         df = df.rename(columns={'Date': 'Trade Date'})
 
-        # Group by contract, not by date
-        summary = df.groupby(['Symbol', 'Expiry', 'Strike', 'OT'], as_index=False).agg(
+        # compute cumulative status
+        status_df = df.groupby(['Symbol', 'Expiry', 'Strike', 'OT'], as_index=False).agg(
+            Net_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum() - x[df.loc[x.index, 'Side'] == 'B'].sum()),
+            PnL=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum() - x[df.loc[x.index, 'Side'] == 'B'].sum())
+        )
+        status_df['Status'] = status_df['Net_Qty'].apply(lambda x: 'Closed' if x == 0 else 'Open Position')
+
+        detailed_df = df.groupby(['Trade Date', 'Symbol', 'Expiry', 'Strike', 'OT'], as_index=False).agg(
             Buy_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
             Buy_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
             Sell_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
-            Sell_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
-            First_Trade_Date=('Trade Date', 'min')
+            Sell_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum())
         )
+        detailed_df['Net_Qty'] = detailed_df['Sell_Qty'] - detailed_df['Buy_Qty']
+        detailed_df['P&L'] = detailed_df['Sell_Amt'] - detailed_df['Buy_Amt']
 
-        summary['Net_Qty'] = summary['Sell_Qty'] - summary['Buy_Qty']
-        summary['P&L'] = summary['Sell_Amt'] - summary['Buy_Amt']
-        summary['Status'] = summary['Net_Qty'].apply(lambda x: 'Closed' if x == 0 else 'Open Position')
-        summary = summary.rename(columns={'OT': 'Type', 'First_Trade_Date': 'Trade Date'})
-        summary = summary.sort_values(by=['Trade Date', 'Symbol', 'Strike'])
+        merged = pd.merge(detailed_df, status_df[['Symbol', 'Expiry', 'Strike', 'OT', 'Status']], on=['Symbol', 'Expiry', 'Strike', 'OT'], how='left')
+        merged = merged.rename(columns={'OT': 'Type'})
+        merged = merged.sort_values(by=['Trade Date', 'Symbol', 'Strike'])
 
-        st.dataframe(summary, use_container_width=True)
+        st.dataframe(merged, use_container_width=True)
 
-        totals = summary[summary['Status'] == 'Closed']['P&L'].sum()
+        totals = merged[merged['Status'] == 'Closed']['P&L'].sum()
         st.markdown(f"### 💰 Total Realised P&L: `{totals:.2f}`")
 
-        excel_file = export_to_excel(summary)
+        excel_file = export_to_excel(merged)
         st.download_button("📥 Download Excel Summary", excel_file, "PnL_Summary.xlsx")
