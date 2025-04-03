@@ -11,13 +11,11 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 
 st.set_page_config(page_title="Options Trading P&L Dashboard", layout="wide")
 
-# Authenticate with Google Sheets using service account
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 creds_dict = json.loads(st.secrets["GOOGLE_CREDENTIALS_JSON"])
 creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
 client = gspread.authorize(creds)
 
-# Use sheet by ID instead of name
 SHEET_ID = "1Siith5tw8m-aNOAcwqG1I7L1e_kt8qBX1OOKuAkCpb4"
 sheet = client.open_by_key(SHEET_ID).sheet1
 
@@ -27,6 +25,7 @@ def load_trades():
     return pd.DataFrame(records)
 
 def append_trades(new_df):
+    new_df["Date"] = new_df["Date"].astype(str)  # Convert Timestamp to string
     existing = load_trades()
     updated = pd.concat([existing, new_df], ignore_index=True)
     sheet.clear()
