@@ -91,35 +91,57 @@ elif tab == "📋 Script-Wise Summary":
     st.cache_data.clear()
     df = load_trades()
 
-    st.subheader("🔍 Raw Data from Google Sheets")
-    st.dataframe(df, use_container_width=True)
-    st.write("📌 Detected column names:", df.columns.tolist())
-
-    required_cols = {"Symbol", "Expiry", "Strike", "Type", "Side", "Quantity", "Price", "Date", "Value"}
-    if df.empty or not required_cols.issubset(set(df.columns)):
-        st.warning("⚠️ No trade data available or expected columns are missing.")
+    if df.empty:
+        st.warning("⚠️ No trade data available.")
     else:
-        try:
-            df['OT'] = df['Type'].map({'CE': 'C', 'PE': 'P'})
-            df['Leg'] = df['Symbol'].astype(str) + '_' + df['Expiry'].astype(str) + '_' + df['Strike'].astype(str) + '_' + df['OT']
+        df['OT'] = df['Type'].map({'CE': 'C', 'PE': 'P'})
+        df['Leg'] = df['Symbol'].astype(str) + '_' + df['Expiry'].astype(str) + '_' + df['Strike'].astype(str) + '_' + df['OT']
 
-            # Group by contract (not date) to determine open/closed status
-            summary = df.groupby(['Symbol', 'Expiry', 'Strike', 'OT']).agg(
-                Buy_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
-                Buy_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
-                Sell_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
-                Sell_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum())
-            ).reset_index()
+        df['Date'] = pd.to_datetime(df['Date'])
+        df.sort_values(by='Date', inplace=True)
 
-            summary['Net_Qty'] = summary['Sell_Qty'] - summary['Buy_Qty']
-            summary['P&L'] = summary['Sell_Amt'] - summary['Buy_Amt']
-            summary['Status'] = summary['Net_Qty'].apply(lambda x: "Closed" if x == 0 else "Open Position")
-            summary = summary.rename(columns={'OT': 'Type'})
-            summary = summary.sort_values(by=['Symbol', 'Expiry', 'Strike'])
+        records = []
+        net_positions = {}
 
-            st.subheader("📈 Final P&L Summary Across All Dates")
-            st.dataframe(summary, use_container_width=True)
-            excel_file = export_to_excel(summary)
-            st.download_button("📥 Download Excel Summary", excel_file, "PnL_Summary.xlsx")
-        except Exception as e:
-            st.error(f"❌ Error during processing: {e}")
+        for _, row in df.iterrows():
+            key = (row['Symbol'], row['Expiry'], row['Strike'], row['OT'])
+
+            qty = row['Quantity'] if row['Side'] == 'S' else -row['Quantity']
+            amt = row['Value'] if row['Side'] == 'S' else -row['Value']
+
+            prev_qty, prev_amt = net_positions.get(key, (0, 0))
+            new_qty = prev_qty + qty
+            new_amt = prev_amt + amt
+
+            net_positions[key] = (new_qty, new_amt)
+
+            status = "Closed" if new_qty == 0 else "Open Position"
+
+            records.append({
+                "Trade Date": row["Date"].date(),
+                "Symbol": row["Symbol"],
+                "Expiry": row["Expiry"],
+                "Strike": row["Strike"],
+                "Type": row["OT"],
+                "Buy_Qty": row["Quantity"] if row["Side"] == "B" else 0,
+                "Buy_Amt": row["Value"] if row["Side"] == "B" else 0,
+                "Sell_Qty": row["Quantity"] if row["Side"] == "S" else 0,
+                "Sell_Amt": row["Value"] if row["Side"] == "S" else 0,
+                "Net_Qty": new_qty,
+                "P&L": new_amt if new_qty == 0 else None,
+                "Status": status
+            })
+
+        summary = pd.DataFrame(records)
+        summary = summary.groupby(["Trade Date", "Symbol", "Expiry", "Strike", "Type", "Status"], as_index=False).agg({
+            "Buy_Qty": "sum",
+            "Buy_Amt": "sum",
+            "Sell_Qty": "sum",
+            "Sell_Amt": "sum",
+            "Net_Qty": "last",
+            "P&L": "last"
+        }).sort_values(by=["Trade Date", "Symbol", "Strike"])
+
+        st.dataframe(summary, use_container_width=True)
+        excel_file = export_to_excel(summary)
+        st.download_button("📥 Download Excel Summary", excel_file, "PnL_Summary.xlsx")
