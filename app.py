@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import json
@@ -87,7 +88,6 @@ if tab == "📤 Upload Trades":
 elif tab == "📋 Script-Wise Summary":
     st.header("📋 Script-Wise Summary")
 
-    # Clear cache and reload to ensure fresh data
     st.cache_data.clear()
     df = load_trades()
 
@@ -102,19 +102,22 @@ elif tab == "📋 Script-Wise Summary":
         try:
             df['OT'] = df['Type'].map({'CE': 'C', 'PE': 'P'})
             df['Leg'] = df['Symbol'].astype(str) + '_' + df['Expiry'].astype(str) + '_' + df['Strike'].astype(str) + '_' + df['OT']
-            summary = df.groupby(['Date', 'Symbol', 'Expiry', 'Strike', 'OT']).agg(
+
+            # Group by contract (not date) to determine open/closed status
+            summary = df.groupby(['Symbol', 'Expiry', 'Strike', 'OT']).agg(
                 Buy_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
                 Buy_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
                 Sell_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
                 Sell_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum())
             ).reset_index()
+
             summary['Net_Qty'] = summary['Sell_Qty'] - summary['Buy_Qty']
             summary['P&L'] = summary['Sell_Amt'] - summary['Buy_Amt']
             summary['Status'] = summary['Net_Qty'].apply(lambda x: "Closed" if x == 0 else "Open Position")
-            summary.loc[summary['Status'] == 'Open Position', 'P&L'] = None
-            summary = summary.rename(columns={'OT': 'Type', 'Date': 'Trade Date'})
-            summary = summary.sort_values(by=['Trade Date', 'Symbol', 'Strike'])
-            st.subheader("📈 Processed Summary")
+            summary = summary.rename(columns={'OT': 'Type'})
+            summary = summary.sort_values(by=['Symbol', 'Expiry', 'Strike'])
+
+            st.subheader("📈 Final P&L Summary Across All Dates")
             st.dataframe(summary, use_container_width=True)
             excel_file = export_to_excel(summary)
             st.download_button("📥 Download Excel Summary", excel_file, "PnL_Summary.xlsx")
