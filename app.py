@@ -1,18 +1,41 @@
 
 import streamlit as st
 import pandas as pd
+import json
+import gspread
 from datetime import datetime
 from io import BytesIO
+from oauth2client.service_account import ServiceAccountCredentials
 from openpyxl import Workbook
 from openpyxl.styles import PatternFill, Font, Alignment
 from openpyxl.utils.dataframe import dataframe_to_rows
 
 st.set_page_config(page_title="Options Trading P&L Dashboard", layout="wide")
 
-# Initialize session storage
-if 'trade_data' not in st.session_state:
-    st.session_state.trade_data = pd.DataFrame()
+# Authenticate with Google Sheets
+scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+creds_dict = json.loads(st.secrets["GOOGLE_CREDENTIALS_JSON"])
+creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+client = gspread.authorize(creds)
 
+# Open the spreadsheet
+SHEET_NAME = "Options_Trade_Data"
+sheet = client.open(SHEET_NAME).sheet1
+
+# Load existing trade data
+@st.cache_data
+def load_trades():
+    records = sheet.get_all_records()
+    return pd.DataFrame(records)
+
+# Save new trades
+def append_trades(new_df):
+    existing = load_trades()
+    updated = pd.concat([existing, new_df], ignore_index=True)
+    sheet.clear()
+    sheet.update([updated.columns.values.tolist()] + updated.values.tolist())
+
+# Excel export styling
 def export_to_excel(df):
     output = BytesIO()
     wb = Workbook()
@@ -64,18 +87,19 @@ if tab == "📤 Upload Trades":
             df.columns = ['Symbol', 'Expiry', 'Strike', 'Type', 'Side', 'Quantity', 'Price', 'Date']
             df = df[(df['Quantity'] > 0) & (df['Price'] > 0)]
             df['Value'] = df['Quantity'] * df['Price']
-            st.session_state.trade_data = pd.concat([st.session_state.trade_data, df], ignore_index=True)
-            st.success("✅ Trade file uploaded and stored.")
+
+            append_trades(df)
+            st.success("✅ Trade file uploaded and saved to Google Sheets.")
         except Exception as e:
             st.error(f"Error reading file: {e}")
 
 elif tab == "📋 Script-Wise Summary":
     st.header("📋 Script-Wise Summary")
 
-    if st.session_state.trade_data.empty:
-        st.info("No trade data available. Upload files first.")
+    df = load_trades()
+    if df.empty:
+        st.info("No trade data available.")
     else:
-        df = st.session_state.trade_data.copy()
         df['OT'] = df['Type'].map({'CE': 'C', 'PE': 'P'})
         df['Leg'] = df['Symbol'] + '_' + df['Expiry'].astype(str) + '_' + df['Strike'].astype(str) + '_' + df['OT']
 
