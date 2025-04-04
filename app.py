@@ -143,6 +143,9 @@ elif tab == "📋 Script-Wise Summary":
     st.header("📋 Script-Wise Summary")
     st.cache_data.clear()
     df = load_trades()
+    df = df.rename(columns={'Date': 'Trade Date'})
+    if 'Value' not in df.columns and 'Quantity' in df.columns and 'Price' in df.columns:
+        df['Value'] = df['Quantity'] * df['Price']
             
     required_columns = {'Symbol', 'Expiry', 'Strike', 'Type', 'Side', 'Quantity', 'Price', 'Value', 'Trade Date'}
     if df.empty or not required_columns.issubset(df.columns):
