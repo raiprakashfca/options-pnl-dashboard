@@ -44,8 +44,7 @@ def export_to_excel(df):
     col_headers = df.columns.tolist()
     ws.append(col_headers)
     current_row = 2
-
-    current_row = 2
+    start_row = current_row
     grouped = df.groupby('Trade Date')
     pnl_col_idx = df.columns.get_loc("P&L") + 1
 
@@ -71,9 +70,7 @@ def export_to_excel(df):
                         cell.fill = PatternFill(start_color="FFC7CE", fill_type="solid")
                 if row['Status'] == 'Open Position':
                     cell.fill = PatternFill(start_color="FFF2CC", fill_type="solid")
-            current_row += 1
-
-        col_letter = get_column_letter(pnl_col_idx)
+            col_letter = get_column_letter(pnl_col_idx)
         if pnl_rows:
             subtotal_formula = f"=SUM({col_letter}{pnl_rows[0]}:{col_letter}{pnl_rows[-1]})"
         else:
@@ -92,7 +89,7 @@ def export_to_excel(df):
 
 
     col_letter = get_column_letter(pnl_col_idx)
-    grand_total_formula = f"=SUM({col_letter}2:{col_letter}{current_row - 1})"
+    grand_total_formula = f"=SUM({col_letter}{start_row}:{col_letter}{current_row - 1})"
     grand_total_value = df[df['Status'] == 'Closed']['P&L'].sum()
     grand_row = ["Grand Total"] + [""] * (len(col_headers) - 2) + [grand_total_formula]
     ws.append(grand_row)
