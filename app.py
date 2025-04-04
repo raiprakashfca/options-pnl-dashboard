@@ -54,6 +54,7 @@ def export_to_excel(df):
     pnl_col_idx = df.columns.get_loc("P&L") + 1
 
     for date, group in grouped:
+        group = group.sort_values(by='Status', ascending=True)
         pnl_rows = []
         for _, row in group.iterrows():
             row_data = [val if not (col_headers[i] == "P&L" and row['Status'] == 'Open Position') else None for i, val in enumerate(row.tolist())]
@@ -74,7 +75,8 @@ def export_to_excel(df):
                     elif value < 0:
                         cell.fill = PatternFill(start_color="FFC7CE", fill_type="solid")
                 if row['Status'] == 'Open Position':
-                    cell.fill = PatternFill(start_color="FFF2CC", fill_type="solid")
+                    for col_fill in range(1, len(col_headers)+1):
+                        ws.cell(row=current_row, column=col_fill).fill = PatternFill(start_color="FFF2CC", fill_type="solid")
             current_row += 1
 
         col_letter = get_column_letter(pnl_col_idx)
