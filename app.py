@@ -134,6 +134,7 @@ elif tab == "📋 Script-Wise Summary":
     Avg_Sell_Price=('Quantity', lambda q: round((df.loc[q.index, 'Price'][df.loc[q.index, 'Side'] == 'S'] * q[df.loc[q.index, 'Side'] == 'S']).sum() / q[df.loc[q.index, 'Side'] == 'S'].sum(), 2) if q[df.loc[q.index, 'Side'] == 'S'].sum() > 0 else None)
 )
 )
+)
 )),
     Buy_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
     Sell_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
