@@ -111,40 +111,43 @@ elif tab == "📋 Script-Wise Summary":
     st.cache_data.clear()
     df = load_trades()
 
-    if df.empty:
-        st.warning("⚠️ No trade data available.")
+    required_columns = {'Symbol', 'Expiry', 'Strike', 'Type', 'Side', 'Quantity', 'Price', 'Value', 'Trade Date'}
+    if df.empty or not required_columns.issubset(df.columns):
+        st.warning("⚠️ No trade data available or expected columns are missing.")
     else:
-        df['OT'] = df['Type'].map({'CE': 'C', 'PE': 'P'})
-        df['Leg'] = df['Symbol'].astype(str) + '_' + df['Expiry'].astype(str) + '_' + df['Strike'].astype(str) + '_' + df['OT']
-        df = df.rename(columns={'Date': 'Trade Date'})
+        try:
+            df['OT'] = df['Type'].map({'CE': 'C', 'PE': 'P'})
+            df['Leg'] = df['Symbol'].astype(str) + '_' + df['Expiry'].astype(str) + '_' + df['Strike'].astype(str) + '_' + df['OT']
+            df = df.rename(columns={'Date': 'Trade Date'})
 
-        # compute cumulative status
-        status_df = df.groupby(['Symbol', 'Expiry', 'Strike', 'OT'], as_index=False).agg(
-            Net_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum() - x[df.loc[x.index, 'Side'] == 'B'].sum()),
-            PnL=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum() - x[df.loc[x.index, 'Side'] == 'B'].sum())
-        )
-        status_df['Status'] = status_df['Net_Qty'].apply(lambda x: 'Closed' if x == 0 else 'Open Position')
+            status_df = df.groupby(['Symbol', 'Expiry', 'Strike', 'OT'], as_index=False).agg(
+                Net_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum() - x[df.loc[x.index, 'Side'] == 'B'].sum()),
+                PnL=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum() - x[df.loc[x.index, 'Side'] == 'B'].sum())
+            )
+            status_df['Status'] = status_df['Net_Qty'].apply(lambda x: 'Closed' if x == 0 else 'Open Position')
 
-        detailed_df = df.groupby(['Trade Date', 'Symbol', 'Expiry', 'Strike', 'OT'], as_index=False).agg(
-    Buy_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
-    Buy_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
-    Sell_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
-    Sell_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
-    Avg_Buy_Price=('Quantity', lambda x: round(df.loc[x.index, 'Value'][df.loc[x.index, 'Side'] == 'B'].sum() / x[df.loc[x.index, 'Side'] == 'B'].sum(), 2) if x[df.loc[x.index, 'Side'] == 'B'].sum() > 0 else None),
-    Avg_Sell_Price=('Quantity', lambda x: round(df.loc[x.index, 'Value'][df.loc[x.index, 'Side'] == 'S'].sum() / x[df.loc[x.index, 'Side'] == 'S'].sum(), 2) if x[df.loc[x.index, 'Side'] == 'S'].sum() > 0 else None)
-)
-detailed_df['Net_Qty'] = detailed_df['Sell_Qty'] - detailed_df['Buy_Qty']
-detailed_df['P&L'] = detailed_df['Sell_Amt'] - detailed_df['Buy_Amt']
+            detailed_df = df.groupby(['Trade Date', 'Symbol', 'Expiry', 'Strike', 'OT'], as_index=False).agg(
+                Buy_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
+                Buy_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
+                Sell_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
+                Sell_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
+                Avg_Buy_Price=('Quantity', lambda x: round(df.loc[x.index, 'Value'][df.loc[x.index, 'Side'] == 'B'].sum() / x[df.loc[x.index, 'Side'] == 'B'].sum(), 2) if x[df.loc[x.index, 'Side'] == 'B'].sum() > 0 else None),
+                Avg_Sell_Price=('Quantity', lambda x: round(df.loc[x.index, 'Value'][df.loc[x.index, 'Side'] == 'S'].sum() / x[df.loc[x.index, 'Side'] == 'S'].sum(), 2) if x[df.loc[x.index, 'Side'] == 'S'].sum() > 0 else None)
+            )
 
+            detailed_df['Net_Qty'] = detailed_df['Sell_Qty'] - detailed_df['Buy_Qty']
+            detailed_df['P&L'] = detailed_df['Sell_Amt'] - detailed_df['Buy_Amt']
 
-merged = pd.merge(detailed_df, status_df[['Symbol', 'Expiry', 'Strike', 'OT', 'Status']], on=['Symbol', 'Expiry', 'Strike', 'OT'], how='left')
-merged = merged.rename(columns={'OT': 'Type'})
-merged = merged.sort_values(by=['Trade Date', 'Symbol', 'Strike'])
+            merged = pd.merge(detailed_df, status_df[['Symbol', 'Expiry', 'Strike', 'OT', 'Status']], on=['Symbol', 'Expiry', 'Strike', 'OT'], how='left')
+            merged = merged.rename(columns={'OT': 'Type'})
+            merged = merged.sort_values(by=['Trade Date', 'Symbol', 'Strike'])
 
-        
-        st.dataframe(merged, use_container_width=True)
+            st.dataframe(merged, use_container_width=True)
 
-        totals = merged[merged['Status'] == 'Closed']['P&L'].sum()
-        st.markdown(f"### 💰 Total Realised P&L: `{totals:.2f}`")
-        excel_file = export_to_excel(merged)
-        st.download_button("📥 Download Excel Summary", excel_file, "PnL_Summary.xlsx")
+            totals = merged[merged['Status'] == 'Closed']['P&L'].sum()
+            st.markdown(f"### 💰 Total Realised P&L: `{totals:.2f}`")
+            excel_file = export_to_excel(merged)
+            st.download_button("📥 Download Excel Summary", excel_file, "PnL_Summary.xlsx")
+
+        except Exception as e:
+            st.error(f"⚠️ Error processing summary: {e}")
