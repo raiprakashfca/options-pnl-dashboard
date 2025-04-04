@@ -138,6 +138,7 @@ elif tab == "📋 Script-Wise Summary":
 )
 )
 )
+)
 )),
     Buy_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
     Sell_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
