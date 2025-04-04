@@ -130,10 +130,9 @@ elif tab == "📋 Script-Wise Summary":
     Buy_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
     Sell_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
     Sell_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
-    Avg_Buy_Price=('Value', lambda x: round(x[df.loc[x.index, 'Side'] == 'B'].sum() / df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'B'].sum(), 2) if df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'B'].sum() > 0 else None),
-    Avg_Sell_Price=('Value', lambda x: round(x[df.loc[x.index, 'Side'] == 'S'].sum() / df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'S'].sum(), 2) if df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'S'].sum() > 0 else None)
+    Avg_Buy_Price=('Quantity', lambda x: round(df.loc[x.index, 'Value'][df.loc[x.index, 'Side'] == 'B'].sum() / x[df.loc[x.index, 'Side'] == 'B'].sum(), 2) if x[df.loc[x.index, 'Side'] == 'B'].sum() > 0 else None),
+    Avg_Sell_Price=('Quantity', lambda x: round(df.loc[x.index, 'Value'][df.loc[x.index, 'Side'] == 'S'].sum() / x[df.loc[x.index, 'Side'] == 'S'].sum(), 2) if x[df.loc[x.index, 'Side'] == 'S'].sum() > 0 else None)
 )
-
 detailed_df['Net_Qty'] = detailed_df['Sell_Qty'] - detailed_df['Buy_Qty']
 detailed_df['P&L'] = detailed_df['Sell_Amt'] - detailed_df['Buy_Amt']
 
@@ -146,4 +145,6 @@ merged = merged.sort_values(by=['Trade Date', 'Symbol', 'Strike'])
         st.dataframe(merged, use_container_width=True)
 
         totals = merged[merged['Status'] == 'Closed']['P&L'].sum()
-        st.markdown(f"### 💰 Total Realised P&L: `{totals:.2f}`")📥 Download Excel Summary", excel_file        st.download_button("📥 Download Excel Summary", excel_file, "PnL_Summary.xlsx")
+        st.markdown(f"### 💰 Total Realised P&L: `{totals:.2f}`")
+        excel_file = export_to_excel(merged)
+        st.download_button("📥 Download Excel Summary", excel_file, "PnL_Summary.xlsx")
