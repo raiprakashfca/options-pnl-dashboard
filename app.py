@@ -130,8 +130,9 @@ elif tab == "📋 Script-Wise Summary":
     Buy_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
     Sell_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
     Sell_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
-    Avg_Buy_Price=('Price', lambda x: round((x[df.loc[x.index, 'Side'] == 'B'] * df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'B']).sum() / df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'B'].sum(), 2) if df.loc[x.index, 'Side'][df.loc[x.index, 'Side'] == 'B'].sum() > 0 else None),
-    Avg_Sell_Price=('Price', lambda x: round((x[df.loc[x.index, 'Side'] == 'S'] * df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'S']).sum() / df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'S'].sum(), 2) if df.loc[x.index, 'Side'][df.loc[x.index, 'Side'] == 'S'].sum() > 0 else None)
+    Avg_Buy_Price=('Quantity', lambda q: round((df.loc[q.index, 'Price'][df.loc[q.index, 'Side'] == 'B'] * q[df.loc[q.index, 'Side'] == 'B']).sum() / q[df.loc[q.index, 'Side'] == 'B'].sum(), 2) if q[df.loc[q.index, 'Side'] == 'B'].sum() > 0 else None),
+    Avg_Sell_Price=('Quantity', lambda q: round((df.loc[q.index, 'Price'][df.loc[q.index, 'Side'] == 'S'] * q[df.loc[q.index, 'Side'] == 'S']).sum() / q[df.loc[q.index, 'Side'] == 'S'].sum(), 2) if q[df.loc[q.index, 'Side'] == 'S'].sum() > 0 else None)
+)
 )
 )),
     Buy_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
