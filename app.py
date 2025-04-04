@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import json
@@ -127,7 +126,19 @@ elif tab == "📋 Script-Wise Summary":
         status_df['Status'] = status_df['Net_Qty'].apply(lambda x: 'Closed' if x == 0 else 'Open Position')
 
         detailed_df = df.groupby(['Trade Date', 'Symbol', 'Expiry', 'Strike', 'OT'], as_index=False).agg(
-            Buy_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
+    Buy_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
+    Buy_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
+    Sell_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
+    Sell_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
+    Avg_Buy_Price=('Price', lambda x: round((x[df.loc[x.index, 'Side'] == 'B'] * df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'B']).sum() / df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'B'].sum(), 2) if df.loc[x.index, 'Side'][df.loc[x.index, 'Side'] == 'B'].sum() > 0 else None),
+    Avg_Sell_Price=('Price', lambda x: round((x[df.loc[x.index, 'Side'] == 'S'] * df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'S']).sum() / df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'S'].sum(), 2) if df.loc[x.index, 'Side'][df.loc[x.index, 'Side'] == 'S'].sum() > 0 else None)
+),
+    Buy_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
+    Sell_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
+    Sell_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
+    Avg_Buy_Price=('Price', lambda x: round(x[df.loc[x.index, 'Side'] == 'B'].mean(), 2) if not x[df.loc[x.index, 'Side'] == 'B'].empty else None),
+    Avg_Sell_Price=('Price', lambda x: round(x[df.loc[x.index, 'Side'] == 'S'].mean(), 2) if not x[df.loc[x.index, 'Side'] == 'S'].empty else None)
+)),
             Buy_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
             Sell_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
             Sell_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum())
