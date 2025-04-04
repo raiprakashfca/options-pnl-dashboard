@@ -43,6 +43,7 @@ def export_to_excel(df):
 
     col_headers = df.columns.tolist()
     ws.append(col_headers)
+    current_row = 2
 
     current_row = 2
     grouped = df.groupby('Trade Date')
@@ -88,20 +89,7 @@ def export_to_excel(df):
             subtotal_cell.fill = PatternFill(start_color="FFC7CE", fill_type="solid")
         current_row += 1
 
-        col_letter = get_column_letter(pnl_col_idx)
-        subtotal_formula = f"=SUM({col_letter}{current_row - len(group)}:{col_letter}{current_row - 1})"
-        subtotal_value = group[group['Status'] == 'Closed']['P&L'].sum()
-        subtotal_row = [f"Subtotal for {date}"] + [""] * (len(col_headers) - 2) + [subtotal_formula]
-        ws.append(subtotal_row)
-        row_num = ws.max_row
-        for col_idx, value in enumerate(subtotal_row, 1):
-            if col_idx == len(subtotal_row):
-                cell = ws.cell(row=row_num, column=col_idx)
-                if subtotal_value > 0:
-                    cell.fill = PatternFill(start_color="C6EFCE", fill_type="solid")  # green
-                elif subtotal_value < 0:
-                    cell.fill = PatternFill(start_color="FFC7CE", fill_type="solid")  # red
-        current_row += 1
+
 
     col_letter = get_column_letter(pnl_col_idx)
     grand_total_formula = f"=SUM({col_letter}2:{col_letter}{current_row - 1})"
