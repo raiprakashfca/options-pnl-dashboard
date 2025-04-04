@@ -86,7 +86,14 @@ def export_to_excel(df):
         subtotal_row = [f"Subtotal for {date}"] + [""] * (len(col_headers) - 2) + [subtotal_formula]
         ws.append(subtotal_row)
         row_num = ws.max_row
-        subtotal_cell = ws.cell(row=row_num, column=pnl_col_idx)
+        for col_idx, val in enumerate(subtotal_row, 1):
+            cell = ws.cell(row=row_num, column=col_idx)
+            cell.font = Font(bold=True)
+            if col_idx == pnl_col_idx:
+                if subtotal_value > 0:
+                    cell.fill = PatternFill(start_color="C6EFCE", fill_type="solid")
+                elif subtotal_value < 0:
+                    cell.fill = PatternFill(start_color="FFC7CE", fill_type="solid")
         if subtotal_value > 0:
             subtotal_cell.fill = PatternFill(start_color="C6EFCE", fill_type="solid")
         elif subtotal_value < 0:
@@ -100,6 +107,7 @@ def export_to_excel(df):
     row_num = ws.max_row
     for col_idx, value in enumerate(grand_row, 1):
         cell = ws.cell(row=row_num, column=col_idx)
+        cell.font = Font(bold=True)
         cell.font = Font(bold=True)
         if col_idx == len(grand_row):
             cell.fill = PatternFill(start_color="C6EFCE", fill_type="solid") if grand_total_value > 0 else PatternFill(start_color="FFC7CE", fill_type="solid")
