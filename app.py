@@ -39,6 +39,7 @@ def export_to_excel(df):
     wb = Workbook()
     ws = wb.active
     ws.title = "P&L Summary"
+    ws.freeze_panes = ws['B2']  # Freeze top row and first column  # Freeze top row
 
     col_headers = df.columns.tolist()
     ws.append(col_headers)
@@ -69,7 +70,7 @@ def export_to_excel(df):
 
         col_letter = get_column_letter(pnl_col_idx)
         subtotal_formula = f"=SUM({col_letter}{current_row - len(group)}:{col_letter}{current_row - 1})"
-        subtotal_value = eval(subtotal_formula.replace("=SUM(", "").replace(")", ""))
+        subtotal_value = group[group['Status'] == 'Closed']['P&L'].sum()
         subtotal_row = [f"Subtotal for {date}"] + [""] * (len(col_headers) - 2) + [subtotal_formula]
         ws.append(subtotal_row)
         for col_idx, value in enumerate(subtotal_row, 1):
@@ -83,14 +84,14 @@ def export_to_excel(df):
 
     col_letter = get_column_letter(pnl_col_idx)
     grand_total_formula = f"=SUM({col_letter}2:{col_letter}{current_row - 1})"
-    grand_total_value = df[df['Status'] == 'Closed']['P&L'].sum()
-        grand_row = ["Grand Total"] + [""] * (len(col_headers) - 2) + [grand_total_formula]
+grand_total_value = df[df['Status'] == 'Closed']['P&L'].sum()
+grand_row = ["Grand Total"] + [""] * (len(col_headers) - 2) + [grand_total_formula]["Grand Total"] + [""] * (len(col_headers) - 2) + [grand_total_formula]
     ws.append(grand_row)
     for col_idx, value in enumerate(grand_row, 1):
         cell = ws.cell(row=current_row, column=col_idx)
         cell.font = Font(bold=True)
         if col_idx == len(grand_row):
-        cell.fill = PatternFill(start_color="C6EFCE", fill_type="solid") if grand_total_value > 0 else PatternFill(start_color="FFC7CE", fill_type="solid")
+                cell.fill = PatternFill(start_color="C6EFCE", fill_type="solid") if grand_total_value > 0 else PatternFill(start_color="FFC7CE", fill_type="solid")
 
     for cell in ws[1]:
         cell.font = Font(bold=True)
@@ -132,8 +133,7 @@ elif tab == "📋 Script-Wise Summary":
     st.header("📋 Script-Wise Summary")
     st.cache_data.clear()
     df = load_trades()
-    df = df.rename(columns={'Date': 'Trade Date'})
-
+    
     required_columns = {'Symbol', 'Expiry', 'Strike', 'Type', 'Side', 'Quantity', 'Price', 'Value', 'Trade Date'}
     if df.empty or not required_columns.issubset(df.columns):
         st.warning("⚠️ No trade data available or expected columns are missing.")
