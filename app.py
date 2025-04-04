@@ -72,7 +72,7 @@ def export_to_excel(df):
         subtotal_formula = f"=SUM({col_letter}{current_row - len(group)}:{col_letter}{current_row - 1})"
         subtotal_value = group[group['Status'] == 'Closed']['P&L'].sum()
         subtotal_row = [f"Subtotal for {date}"] + [""] * (len(col_headers) - 2) + [subtotal_formula]
-                ws.append(subtotal_row)
+        ws.append(subtotal_row)
         row_num = ws.max_row
         for col_idx, value in enumerate(subtotal_row, 1):
             if col_idx == len(subtotal_row):
@@ -87,7 +87,7 @@ def export_to_excel(df):
     grand_total_formula = f"=SUM({col_letter}2:{col_letter}{current_row - 1})"
     grand_total_value = df[df['Status'] == 'Closed']['P&L'].sum()
     grand_row = ["Grand Total"] + [""] * (len(col_headers) - 2) + [grand_total_formula]
-        ws.append(grand_row)
+    ws.append(grand_row)
     row_num = ws.max_row
     for col_idx, value in enumerate(grand_row, 1):
         cell = ws.cell(row=row_num, column=col_idx)
