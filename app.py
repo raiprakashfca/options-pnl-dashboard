@@ -84,8 +84,8 @@ def export_to_excel(df):
 
     col_letter = get_column_letter(pnl_col_idx)
     grand_total_formula = f"=SUM({col_letter}2:{col_letter}{current_row - 1})"
-grand_total_value = df[df['Status'] == 'Closed']['P&L'].sum()
-grand_row = ["Grand Total"] + [""] * (len(col_headers) - 2) + [grand_total_formula]["Grand Total"] + [""] * (len(col_headers) - 2) + [grand_total_formula]
+    grand_total_value = df[df['Status'] == 'Closed']['P&L'].sum()
+    grand_row = ["Grand Total"] + [""] * (len(col_headers) - 2) + [grand_total_formula]
     ws.append(grand_row)
     for col_idx, value in enumerate(grand_row, 1):
         cell = ws.cell(row=current_row, column=col_idx)
