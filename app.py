@@ -21,7 +21,6 @@ client = gspread.authorize(creds)
 SHEET_ID = "1Siith5tw8m-aNOAcwqG1I7L1e_kt8qBX1OOKuAkCpb4"
 sheet = client.open_by_key(SHEET_ID).sheet1
 
-@st.cache_data
 def load_trades():
     records = sheet.get_all_records()
     return pd.DataFrame(records)
@@ -127,7 +126,50 @@ elif tab == "📋 Script-Wise Summary":
         status_df['Status'] = status_df['Net_Qty'].apply(lambda x: 'Closed' if x == 0 else 'Open Position')
 
         detailed_df = df.groupby(['Trade Date', 'Symbol', 'Expiry', 'Strike', 'OT'], as_index=False).agg(
-            Buy_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
+    Buy_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
+    Buy_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
+    Sell_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
+    Sell_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
+    Avg_Buy_Price=('Price', lambda x: round((x[df.loc[x.index, 'Side'] == 'B'] * df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'B']).sum() / df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'B'].sum(), 2) if df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'B'].sum() > 0 else None),
+    Avg_Sell_Price=('Price', lambda x: round((x[df.loc[x.index, 'Side'] == 'S'] * df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'S']).sum() / df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'S'].sum(), 2) if df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'S'].sum() > 0 else None)
+)
+)
+)
+)
+)
+)
+)
+)
+)
+)
+)),
+    Buy_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
+    Sell_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
+    Sell_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
+    Avg_Buy_Price=('Price', lambda x: round((x[df.loc[x.index, 'Side'] == 'B'] * df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'B']).sum() / df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'B'].sum(), 2) if df.loc[x.index, 'Side'][df.loc[x.index, 'Side'] == 'B'].sum() > 0 else None),
+    Avg_Sell_Price=('Price', lambda x: round((x[df.loc[x.index, 'Side'] == 'S'] * df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'S']).sum() / df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'S'].sum(), 2) if df.loc[x.index, 'Side'][df.loc[x.index, 'Side'] == 'S'].sum() > 0 else None)
+),
+    Buy_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
+    Sell_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
+    Sell_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
+    Avg_Buy_Price=('Price', lambda x: round(x[df.loc[x.index, 'Side'] == 'B'].mean(), 2) if not x[df.loc[x.index, 'Side'] == 'B'].empty else None),
+    Avg_Sell_Price=('Price', lambda x: round(x[df.loc[x.index, 'Side'] == 'S'].mean(), 2) if not x[df.loc[x.index, 'Side'] == 'S'].empty else None)
+)),
             Buy_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
             Sell_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
-           * ▋
+            Sell_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum())
+        )
+        detailed_df['Net_Qty'] = detailed_df['Sell_Qty'] - detailed_df['Buy_Qty']
+        detailed_df['P&L'] = detailed_df['Sell_Amt'] - detailed_df['Buy_Amt']
+
+        merged = pd.merge(detailed_df, status_df[['Symbol', 'Expiry', 'Strike', 'OT', 'Status']], on=['Symbol', 'Expiry', 'Strike', 'OT'], how='left')
+        merged = merged.rename(columns={'OT': 'Type'})
+        merged = merged.sort_values(by=['Trade Date', 'Symbol', 'Strike'])
+
+        st.dataframe(merged, use_container_width=True)
+
+        totals = merged[merged['Status'] == 'Closed']['P&L'].sum()
+        st.markdown(f"### 💰 Total Realised P&L: `{totals:.2f}`")
+
+        excel_file = export_to_excel(merged)
+        st.download_button("📥 Download Excel Summary", excel_file, "PnL_Summary.xlsx")
