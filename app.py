@@ -42,7 +42,7 @@ def export_to_excel(df):
     ws.freeze_panes = ws['B2']  # Freeze top row and first column  # Freeze top row
 
     col_headers = df.columns.tolist()
-        for i, col in enumerate(col_headers, start=1):
+    for i, col in enumerate(col_headers, start=1):
         cell = ws.cell(row=1, column=i, value=col)
         cell.font = Font(bold=True)
         cell.fill = PatternFill(start_color="D9E1F2", fill_type="solid")
