@@ -142,7 +142,8 @@ merged = pd.merge(detailed_df, status_df[['Symbol', 'Expiry', 'Strike', 'OT', 'S
 merged = merged.rename(columns={'OT': 'Type'})
 merged = merged.sort_values(by=['Trade Date', 'Symbol', 'Strike'])
 
-        st.dataframe(merged, use_container_width=True)
+        
+st.dataframe(merged, use_container_width=True)
 
         totals = merged[merged['Status'] == 'Closed']['P&L'].sum()
         st.markdown(f"### 💰 Total Realised P&L: `{totals:.2f}`")
