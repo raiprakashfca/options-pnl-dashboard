@@ -39,7 +39,7 @@ def export_to_excel(df):
     wb = Workbook()
     ws = wb.active
     ws.title = "P&L Summary"
-    ws.freeze_panes = ws['B2']  # Freeze top row and first column  # Freeze top row
+    ws.freeze_panes = ws['B2']  # Freeze top row and first column
 
     col_headers = df.columns.tolist()
     for i, col in enumerate(col_headers, start=1):
@@ -47,6 +47,7 @@ def export_to_excel(df):
         cell.font = Font(bold=True)
         cell.fill = PatternFill(start_color="D9E1F2", fill_type="solid")
         cell.alignment = Alignment(horizontal="center")
+
     current_row = 2
     start_row = current_row
     grouped = df.groupby('Trade Date')
@@ -74,7 +75,9 @@ def export_to_excel(df):
                         cell.fill = PatternFill(start_color="FFC7CE", fill_type="solid")
                 if row['Status'] == 'Open Position':
                     cell.fill = PatternFill(start_color="FFF2CC", fill_type="solid")
-            col_letter = get_column_letter(pnl_col_idx)
+            current_row += 1
+
+        col_letter = get_column_letter(pnl_col_idx)
         if pnl_rows:
             subtotal_formula = f"=SUM({col_letter}{pnl_rows[0]}:{col_letter}{pnl_rows[-1]})"
         else:
@@ -88,12 +91,9 @@ def export_to_excel(df):
             subtotal_cell.fill = PatternFill(start_color="C6EFCE", fill_type="solid")
         elif subtotal_value < 0:
             subtotal_cell.fill = PatternFill(start_color="FFC7CE", fill_type="solid")
-        current_row += 1
-
-
 
     col_letter = get_column_letter(pnl_col_idx)
-    grand_total_formula = f"=SUM({col_letter}{start_row}:{col_letter}{current_row - 1})"
+    grand_total_formula = f"=SUM({col_letter}{start_row}:{col_letter}{ws.max_row})"
     grand_total_value = df[df['Status'] == 'Closed']['P&L'].sum()
     grand_row = ["Grand Total"] + [""] * (len(col_headers) - 2) + [grand_total_formula]
     ws.append(grand_row)
@@ -102,12 +102,7 @@ def export_to_excel(df):
         cell = ws.cell(row=row_num, column=col_idx)
         cell.font = Font(bold=True)
         if col_idx == len(grand_row):
-                cell.fill = PatternFill(start_color="C6EFCE", fill_type="solid") if grand_total_value > 0 else PatternFill(start_color="FFC7CE", fill_type="solid")
-
-    for cell in ws[1]:
-        cell.font = Font(bold=True)
-        cell.fill = PatternFill(start_color="D9E1F2", fill_type="solid")
-        cell.alignment = Alignment(horizontal="center")
+            cell.fill = PatternFill(start_color="C6EFCE", fill_type="solid") if grand_total_value > 0 else PatternFill(start_color="FFC7CE", fill_type="solid")
 
     for col in ws.columns:
         max_len = max(len(str(cell.value) if cell.value else "") for cell in col)
