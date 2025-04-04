@@ -54,7 +54,11 @@ def export_to_excel(df):
                 col_name = col_headers[col_idx - 1]
                 cell = ws.cell(row=current_row, column=col_idx)
                 cell.alignment = Alignment(horizontal="right" if col_name in ['Buy_Amt', 'Sell_Amt', 'P&L'] else "center")
-                if col_name == "P&L" and pd.notna(value):
+                if col_name == "Avg_Buy_Price":
+                    cell.fill = PatternFill(start_color="BDD7EE", fill_type="solid")
+                elif col_name == "Avg_Sell_Price":
+                    cell.fill = PatternFill(start_color="F4CCCC", fill_type="solid")
+                elif col_name == "P&L" and pd.notna(value):
                     if value > 0:
                         cell.fill = PatternFill(start_color="C6EFCE", fill_type="solid")
                     elif value < 0:
@@ -64,11 +68,29 @@ def export_to_excel(df):
             current_row += 1
 
         col_letter = get_column_letter(pnl_col_idx)
-        ws.append([f"Subtotal for {date}"] + [""] * (len(col_headers) - 2) + [f"=SUM({col_letter}{current_row - len(group)}:{col_letter}{current_row - 1})"])
+        subtotal_formula = f"=SUM({col_letter}{current_row - len(group)}:{col_letter}{current_row - 1})"
+        subtotal_value = eval(subtotal_formula.replace("=SUM(", "").replace(")", ""))
+        subtotal_row = [f"Subtotal for {date}"] + [""] * (len(col_headers) - 2) + [subtotal_formula]
+        ws.append(subtotal_row)
+        for col_idx, value in enumerate(subtotal_row, 1):
+            if col_idx == len(subtotal_row):
+                cell = ws.cell(row=current_row, column=col_idx)
+                if subtotal_value > 0:
+                    cell.fill = PatternFill(start_color="C6EFCE", fill_type="solid")  # green
+                elif subtotal_value < 0:
+                    cell.fill = PatternFill(start_color="FFC7CE", fill_type="solid")  # red
         current_row += 1
 
     col_letter = get_column_letter(pnl_col_idx)
-    ws.append(["Grand Total"] + [""] * (len(col_headers) - 2) + [f"=SUM({col_letter}2:{col_letter}{current_row - 1})"])
+    grand_total_formula = f"=SUM({col_letter}2:{col_letter}{current_row - 1})"
+    grand_total_value = df[df['Status'] == 'Closed']['P&L'].sum()
+        grand_row = ["Grand Total"] + [""] * (len(col_headers) - 2) + [grand_total_formula]
+    ws.append(grand_row)
+    for col_idx, value in enumerate(grand_row, 1):
+        cell = ws.cell(row=current_row, column=col_idx)
+        cell.font = Font(bold=True)
+        if col_idx == len(grand_row):
+        cell.fill = PatternFill(start_color="C6EFCE", fill_type="solid") if grand_total_value > 0 else PatternFill(start_color="FFC7CE", fill_type="solid")
 
     for cell in ws[1]:
         cell.font = Font(bold=True)
