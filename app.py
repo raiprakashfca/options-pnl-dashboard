@@ -76,7 +76,9 @@ def export_to_excel(df):
                         cell.fill = PatternFill(start_color="FFC7CE", fill_type="solid")
                 if row['Status'] == 'Open Position':
                     for col_fill in range(1, len(col_headers)+1):
-                        ws.cell(row=current_row, column=col_fill).fill = PatternFill(start_color="FFF2CC", fill_type="solid")
+                        highlight_cell = ws.cell(row=current_row, column=col_fill)
+                        highlight_cell.fill = PatternFill(start_color="FFF2CC", fill_type="solid")
+                        highlight_cell.alignment = Alignment(horizontal="center")
             current_row += 1
 
         col_letter = get_column_letter(pnl_col_idx)
