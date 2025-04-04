@@ -49,8 +49,12 @@ def export_to_excel(df):
     pnl_col_idx = df.columns.get_loc("P&L") + 1
 
     for date, group in grouped:
+        pnl_rows = []
         for _, row in group.iterrows():
-            ws.append([val if not (col_headers[i] == "P&L" and row['Status'] == 'Open Position') else None for i, val in enumerate(row.tolist())])
+            row_data = [val if not (col_headers[i] == "P&L" and row['Status'] == 'Open Position') else None for i, val in enumerate(row.tolist())]
+            ws.append(row_data)
+            if row['Status'] == 'Closed':
+                pnl_rows.append(current_row)
             for col_idx, value in enumerate(row.tolist(), 1):
                 col_name = col_headers[col_idx - 1]
                 cell = ws.cell(row=current_row, column=col_idx)
@@ -67,6 +71,22 @@ def export_to_excel(df):
                 if row['Status'] == 'Open Position':
                     cell.fill = PatternFill(start_color="FFF2CC", fill_type="solid")
             current_row += 1
+
+        col_letter = get_column_letter(pnl_col_idx)
+        if pnl_rows:
+            subtotal_formula = f"=SUM({col_letter}{pnl_rows[0]}:{col_letter}{pnl_rows[-1]})"
+        else:
+            subtotal_formula = ""
+        subtotal_value = group[group['Status'] == 'Closed']['P&L'].sum()
+        subtotal_row = [f"Subtotal for {date}"] + [""] * (len(col_headers) - 2) + [subtotal_formula]
+        ws.append(subtotal_row)
+        row_num = ws.max_row
+        subtotal_cell = ws.cell(row=row_num, column=pnl_col_idx)
+        if subtotal_value > 0:
+            subtotal_cell.fill = PatternFill(start_color="C6EFCE", fill_type="solid")
+        elif subtotal_value < 0:
+            subtotal_cell.fill = PatternFill(start_color="FFC7CE", fill_type="solid")
+        current_row += 1
 
         col_letter = get_column_letter(pnl_col_idx)
         subtotal_formula = f"=SUM({col_letter}{current_row - len(group)}:{col_letter}{current_row - 1})"
