@@ -74,11 +74,7 @@ def export_to_excel(df):
                         cell.fill = PatternFill(start_color="C6EFCE", fill_type="solid")
                     elif value < 0:
                         cell.fill = PatternFill(start_color="FFC7CE", fill_type="solid")
-                if row['Status'] == 'Open Position':
-                    for col_fill in range(1, len(col_headers)+1):
-                        highlight_cell = ws.cell(row=current_row, column=col_fill)
-                        highlight_cell.fill = PatternFill(start_color="FFF2CC", fill_type="solid")
-                        highlight_cell.alignment = Alignment(horizontal="center")
+                
             current_row += 1
 
         col_letter = get_column_letter(pnl_col_idx)
@@ -108,7 +104,6 @@ def export_to_excel(df):
     row_num = ws.max_row
     for col_idx, value in enumerate(grand_row, 1):
         cell = ws.cell(row=row_num, column=col_idx)
-        cell.font = Font(bold=True)
         cell.font = Font(bold=True)
         if col_idx == len(grand_row):
             cell.fill = PatternFill(start_color="C6EFCE", fill_type="solid") if grand_total_value > 0 else PatternFill(start_color="FFC7CE", fill_type="solid")
@@ -148,8 +143,7 @@ elif tab == "📋 Script-Wise Summary":
     st.header("📋 Script-Wise Summary")
     st.cache_data.clear()
     df = load_trades()
-    df = df.rename(columns={'Date': 'Trade Date'})
-    
+        
     required_columns = {'Symbol', 'Expiry', 'Strike', 'Type', 'Side', 'Quantity', 'Price', 'Value', 'Trade Date'}
     if df.empty or not required_columns.issubset(df.columns):
         st.warning("⚠️ No trade data available or expected columns are missing.")
