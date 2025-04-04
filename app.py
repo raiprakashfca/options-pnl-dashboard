@@ -143,9 +143,7 @@ merged = merged.rename(columns={'OT': 'Type'})
 merged = merged.sort_values(by=['Trade Date', 'Symbol', 'Strike'])
 
         
-st.dataframe(merged, use_container_width=True)
+        st.dataframe(merged, use_container_width=True)
 
-totals = merged[merged['Status'] == 'Closed']['P&L'].sum()
-st.markdown(f"### 💰 Total Realised P&L: `{totals:.2f}`")
-excel_file = export_to_excel(merged)
-st.download_button("📥 Download Excel Summary", excel_file, "PnL_Summary.xlsx")
+        totals = merged[merged['Status'] == 'Closed']['P&L'].sum()
+        st.markdown(f"### 💰 Total Realised P&L: `{totals:.2f}`")📥 Download Excel Summary", excel_file        st.download_button("📥 Download Excel Summary", excel_file, "PnL_Summary.xlsx")
