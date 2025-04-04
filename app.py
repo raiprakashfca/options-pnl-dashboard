@@ -94,10 +94,7 @@ def export_to_excel(df):
                     cell.fill = PatternFill(start_color="C6EFCE", fill_type="solid")
                 elif subtotal_value < 0:
                     cell.fill = PatternFill(start_color="FFC7CE", fill_type="solid")
-        if subtotal_value > 0:
-            subtotal_cell.fill = PatternFill(start_color="C6EFCE", fill_type="solid")
-        elif subtotal_value < 0:
-            subtotal_cell.fill = PatternFill(start_color="FFC7CE", fill_type="solid")
+        
 
     col_letter = get_column_letter(pnl_col_idx)
     grand_total_formula = f"=SUM({col_letter}{start_row}:{col_letter}{ws.max_row})"
