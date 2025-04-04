@@ -137,9 +137,10 @@ elif tab == "📋 Script-Wise Summary":
 detailed_df['Net_Qty'] = detailed_df['Sell_Qty'] - detailed_df['Buy_Qty']
 detailed_df['P&L'] = detailed_df['Sell_Amt'] - detailed_df['Buy_Amt']
 
+
 merged = pd.merge(detailed_df, status_df[['Symbol', 'Expiry', 'Strike', 'OT', 'Status']], on=['Symbol', 'Expiry', 'Strike', 'OT'], how='left')
-        merged = merged.rename(columns={'OT': 'Type'})
-        merged = merged.sort_values(by=['Trade Date', 'Symbol', 'Strike'])
+merged = merged.rename(columns={'OT': 'Type'})
+merged = merged.sort_values(by=['Trade Date', 'Symbol', 'Strike'])
 
         st.dataframe(merged, use_container_width=True)
 
