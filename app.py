@@ -130,39 +130,14 @@ elif tab == "📋 Script-Wise Summary":
     Buy_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
     Sell_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
     Sell_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
-    Avg_Buy_Price=('Price', lambda x: round((x[df.loc[x.index, 'Side'] == 'B'] * df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'B']).sum() / df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'B'].sum(), 2) if df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'B'].sum() > 0 else None),
-    Avg_Sell_Price=('Price', lambda x: round((x[df.loc[x.index, 'Side'] == 'S'] * df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'S']).sum() / df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'S'].sum(), 2) if df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'S'].sum() > 0 else None)
+    Avg_Buy_Price=('Value', lambda x: round(x[df.loc[x.index, 'Side'] == 'B'].sum() / df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'B'].sum(), 2) if df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'B'].sum() > 0 else None),
+    Avg_Sell_Price=('Value', lambda x: round(x[df.loc[x.index, 'Side'] == 'S'].sum() / df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'S'].sum(), 2) if df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'S'].sum() > 0 else None)
 )
-)
-)
-)
-)
-)
-)
-)
-)
-)
-)),
-    Buy_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
-    Sell_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
-    Sell_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
-    Avg_Buy_Price=('Price', lambda x: round((x[df.loc[x.index, 'Side'] == 'B'] * df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'B']).sum() / df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'B'].sum(), 2) if df.loc[x.index, 'Side'][df.loc[x.index, 'Side'] == 'B'].sum() > 0 else None),
-    Avg_Sell_Price=('Price', lambda x: round((x[df.loc[x.index, 'Side'] == 'S'] * df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'S']).sum() / df.loc[x.index, 'Quantity'][df.loc[x.index, 'Side'] == 'S'].sum(), 2) if df.loc[x.index, 'Side'][df.loc[x.index, 'Side'] == 'S'].sum() > 0 else None)
-),
-    Buy_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
-    Sell_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
-    Sell_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
-    Avg_Buy_Price=('Price', lambda x: round(x[df.loc[x.index, 'Side'] == 'B'].mean(), 2) if not x[df.loc[x.index, 'Side'] == 'B'].empty else None),
-    Avg_Sell_Price=('Price', lambda x: round(x[df.loc[x.index, 'Side'] == 'S'].mean(), 2) if not x[df.loc[x.index, 'Side'] == 'S'].empty else None)
-)),
-            Buy_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'B'].sum()),
-            Sell_Qty=('Quantity', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum()),
-            Sell_Amt=('Value', lambda x: x[df.loc[x.index, 'Side'] == 'S'].sum())
-        )
-        detailed_df['Net_Qty'] = detailed_df['Sell_Qty'] - detailed_df['Buy_Qty']
-        detailed_df['P&L'] = detailed_df['Sell_Amt'] - detailed_df['Buy_Amt']
 
-        merged = pd.merge(detailed_df, status_df[['Symbol', 'Expiry', 'Strike', 'OT', 'Status']], on=['Symbol', 'Expiry', 'Strike', 'OT'], how='left')
+detailed_df['Net_Qty'] = detailed_df['Sell_Qty'] - detailed_df['Buy_Qty']
+detailed_df['P&L'] = detailed_df['Sell_Amt'] - detailed_df['Buy_Amt']
+
+merged = pd.merge(detailed_df, status_df[['Symbol', 'Expiry', 'Strike', 'OT', 'Status']], on=['Symbol', 'Expiry', 'Strike', 'OT'], how='left')
         merged = merged.rename(columns={'OT': 'Type'})
         merged = merged.sort_values(by=['Trade Date', 'Symbol', 'Strike'])
 
