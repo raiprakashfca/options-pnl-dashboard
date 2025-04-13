@@ -25,7 +25,10 @@ def load_trades():
     records = sheet.get_all_records()
     return pd.DataFrame(records)
 
-def append_trades(new_df):
+def append_trades(new_df, filename):
+        new_df['Upload_File'] = filename
+    new_df['Upload_Time'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
     for col in ["Date", "Expiry"]:
         if col in new_df.columns:
             new_df[col] = new_df[col].astype(str)
@@ -134,7 +137,7 @@ if tab == "📤 Upload Trades":
             df.columns = ['Symbol', 'Expiry', 'Strike', 'Type', 'Side', 'Quantity', 'Price', 'Date']
             df = df[(df['Quantity'] > 0) & (df['Price'] > 0)]
             df['Value'] = df['Quantity'] * df['Price']
-            append_trades(df)
+            append_trades(df, uploaded_file.name)
             st.success("✅ Trade file uploaded and saved to Google Sheets.")
         except Exception as e:
             st.error(f"Error reading file: {e}")
@@ -178,7 +181,15 @@ elif tab == "📋 Script-Wise Summary":
             merged = merged.rename(columns={'OT': 'Type'})
             merged = merged.sort_values(by=['Trade Date', 'Symbol', 'Strike'])
 
-            st.dataframe(merged, use_container_width=True)
+                        st.dataframe(merged, use_container_width=True)
+
+            # Display last upload info
+            last_row = df.tail(1)
+            if 'Upload_File' in last_row.columns and 'Upload_Time' in last_row.columns:
+                last_filename = last_row['Upload_File'].values[0]
+                last_time = last_row['Upload_Time'].values[0]
+                st.info(f"📂 Last uploaded file: `{last_filename}`  
+🕒 Uploaded on: `{last_time}`")
 
             totals = merged[merged['Status'] == 'Closed']['P&L'].sum()
             st.markdown(f"### 💰 Total Realised P&L: `{totals:.2f}`")
