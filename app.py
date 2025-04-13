@@ -187,8 +187,7 @@ elif tab == "📋 Script-Wise Summary":
             if 'Upload_File' in last_row.columns and 'Upload_Time' in last_row.columns:
                 last_filename = last_row['Upload_File'].values[0]
                 last_time = last_row['Upload_Time'].values[0]
-                st.info(f"📂 Last uploaded file: `{last_filename}`
-🕒 Uploaded on: `{last_time}`")
+                st.info(f"📂 Last uploaded file: `{last_filename}`\n🕒 Uploaded on: `{last_time}`")
 
             totals = merged[merged['Status'] == 'Closed']['P&L'].sum()
             st.markdown(f"### 💰 Total Realised P&L: `{totals:.2f}`")
