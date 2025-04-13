@@ -26,7 +26,7 @@ def load_trades():
     return pd.DataFrame(records)
 
 def append_trades(new_df, filename):
-        new_df['Upload_File'] = filename
+    new_df['Upload_File'] = filename
     new_df['Upload_Time'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     for col in ["Date", "Expiry"]:
@@ -180,8 +180,7 @@ elif tab == "📋 Script-Wise Summary":
             merged = pd.merge(detailed_df, status_df[['Symbol', 'Expiry', 'Strike', 'OT', 'Status']], on=['Symbol', 'Expiry', 'Strike', 'OT'], how='left')
             merged = merged.rename(columns={'OT': 'Type'})
             merged = merged.sort_values(by=['Trade Date', 'Symbol', 'Strike'])
-
-                        st.dataframe(merged, use_container_width=True)
+            st.dataframe(merged, use_container_width=True)
 
             # Display last upload info
             last_row = df.tail(1)
